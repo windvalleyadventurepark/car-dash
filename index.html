@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0B0D0F">
+<title>Drive.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0B0D0F;
+    --bg-panel:  #15181C;
+    --amber:     #FF8A3D;
+    --amber-dim: #B85F22;
+    --steel:     #4A9EBF;
+    --text:      #E8E6E0;
+    --text-dim:  #6B6F76;
+    --border:    #24282E;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html, body {
+    width:100%; height:100%; overflow:hidden;
+    background:var(--bg);
+    font-family:'Inter', sans-serif;
+    color:var(--text);
+    user-select:none;
+  }
+
+  /* ============================================================
+     SPLASH — sits as a sibling ABOVE body content via fixed+z
+  ============================================================ */
+  #splash {
+    position:fixed; inset:0; z-index:2000;
+    background:var(--bg);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    transition:opacity 1.2s ease;
+  }
+  #splash.out { opacity:0; pointer-events:none; }
+
+  /* Scan line sweeps top → bottom */
+  .s-scan {
+    position:absolute; top:-2px; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,
+      transparent 0%, rgba(255,138,61,0.1) 15%,
+      var(--amber) 45%, rgba(255,138,61,0.6) 55%,
+      rgba(255,138,61,0.1) 80%, transparent 100%);
+    box-shadow:0 0 22px 6px rgba(255,138,61,0.3);
+    animation:scanDown 1.8s ease-in-out 0.05s forwards;
+    opacity:0;
+  }
+  @keyframes scanDown {
+    0%   { top:-2px;  opacity:1; }
+    90%  { opacity:1; }
+    100% { top:100%;  opacity:0; }
+  }
+
+  /* Corner HUD brackets */
+  .s-corners { position:absolute; inset:24px; opacity:0; animation:fadeIn 0.5s ease 1s forwards; }
+  @keyframes fadeIn { to { opacity:1; } }
+  .s-corners::before { content:''; position:absolute; top:0;    left:0;  width:30px; height:30px; border-top:1px solid rgba(255,138,61,0.45); border-left:1px solid rgba(255,138,61,0.45); }
+  .s-corners::after  { content:''; position:absolute; top:0;    right:0; width:30px; height:30px; border-top:1px solid rgba(255,138,61,0.45); border-right:1px solid rgba(255,138,61,0.45); }
+  .s-br { position:absolute; bottom:0; right:0; width:30px; height:30px; border-bottom:1px solid rgba(255,138,61,0.45); border-right:1px solid rgba(255,138,61,0.45); }
+  .s-bl { position:absolute; bottom:0; left:0;  width:30px; height:30px; border-bottom:1px solid rgba(255,138,61,0.45); border-left:1px solid rgba(255,138,61,0.45); }
+
+  /* Center logo block */
+  .s-center {
+    display:flex; flex-direction:column; align-items:center; gap:24px;
+    opacity:0; transform:translateY(16px) scale(0.95);
+    animation:riseIn 1s cubic-bezier(0.16,1,0.3,1) 0.9s forwards;
+  }
+  @keyframes riseIn { to { opacity:1; transform:translateY(0) scale(1); } }
+
+  .s-rings {
+    position:relative; width:80px; height:80px;
+  }
+  .s-ring1 {
+    position:absolute; inset:0; border-radius:50%;
+    border:1.5px solid var(--border);
+    border-top-color:var(--amber);
+    border-right-color:rgba(255,138,61,0.5);
+    animation:spin1 2s linear infinite;
+  }
+  .s-ring2 {
+    position:absolute; inset:12px; border-radius:50%;
+    border:1px solid transparent;
+    border-bottom-color:var(--amber-dim);
+    border-left-color:rgba(184,95,34,0.4);
+    animation:spin1 1.3s linear infinite reverse;
+  }
+  .s-ring3 {
+    position:absolute; inset:24px; border-radius:50%;
+    border:1px solid rgba(255,138,61,0.15);
+    border-top-color:rgba(255,138,61,0.5);
+    animation:spin1 1.8s linear infinite;
+  }
+  .s-dot {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .s-dot::after {
+    content:''; width:10px; height:10px; border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 16px 6px rgba(255,138,61,0.45);
+    animation:pulseDot 2s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.45;transform:scale(0.55)} }
+  @keyframes spin1 { to { transform:rotate(360deg); } }
+
+  .s-word {
+    font-family:'Oswald', sans-serif;
+    font-size:58px; font-weight:700;
+    letter-spacing:16px; text-transform:uppercase; line-height:1;
+  }
+  .s-word .acc { color:var(--amber); }
+
+  .s-tag {
+    font-size:11px; color:var(--text-dim);
+    letter-spacing:4.5px; text-transform:uppercase; font-weight:400;
+    opacity:0; animation:fadeIn 0.7s ease 1.6s forwards;
+  }
+
+  /* Progress bar */
+  .s-bar-track {
+    position:absolute; bottom:56px; left:50%; transform:translateX(-50%);
+    width:200px; height:1px; background:var(--border);
+    opacity:0; animation:fadeIn 0.4s ease 1.1s forwards;
+  }
+  .s-bar-fill {
+    height:100%; width:0;
+    background:linear-gradient(90deg, var(--amber-dim), var(--amber));
+    box-shadow:0 0 10px 2px rgba(255,138,61,0.4);
+    animation:barFill 2.2s cubic-bezier(0.4,0,0.2,1) 1.1s forwards;
+  }
+  @keyframes barFill { to { width:100%; } }
+
+  .s-status {
+    position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
+    font-size:10px; color:var(--text-dim);
+    letter-spacing:3px; text-transform:uppercase; white-space:nowrap;
+    opacity:0; animation:fadeIn 0.6s ease 1.2s forwards;
+  }
+
+  /* ============================================================
+     ROTATE SCREEN
+  ============================================================ */
+  #rotateScreen {
+    position:fixed; inset:0; z-index:1500;
+    background:var(--bg);
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center; gap:20px;
+  }
+  #rotateScreen.show { display:flex; }
+  .rot-icon { width:50px; height:50px; color:var(--amber); animation:rotHint 2s ease-in-out infinite; }
+  @keyframes rotHint { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-90deg)} }
+  .rot-text { font-size:11px; color:var(--text-dim); letter-spacing:3px; text-transform:uppercase; }
+
+  /* ============================================================
+     DYNAMIC ISLAND
+  ============================================================ */
+  #island {
+    position:fixed; top:14px; left:50%;
+    transform:translateX(-50%) scaleX(0.001);
+    width:0; height:36px; background:#000;
+    border-radius:30px; z-index:1800;
+    display:flex; align-items:center; overflow:hidden;
+    box-shadow:0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,138,61,0);
+    transition:
+      width  0.6s cubic-bezier(0.34,1.56,0.64,1),
+      height 0.6s cubic-bezier(0.34,1.56,0.64,1),
+      transform 0.6s cubic-bezier(0.34,1.56,0.64,1),
+      border-radius 0.6s ease,
+      box-shadow 0.6s ease;
+  }
+  #island.awake {
+    width:72px; transform:translateX(-50%) scaleX(1);
+    box-shadow:0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,138,61,0.2);
+  }
+  #island.expanded {
+    width:340px; height:72px; border-radius:28px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,138,61,0.3);
+  }
+  .isl-content {
+    display:flex; align-items:center; gap:12px;
+    padding:0 18px; width:340px;
+    opacity:0; transition:opacity 0.3s ease 0.28s; white-space:nowrap;
+  }
+  #island.expanded .isl-content { opacity:1; }
+  .isl-avatar {
+    width:40px; height:40px; border-radius:50%;
+    background:linear-gradient(135deg,var(--amber),var(--amber-dim));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald',sans-serif; font-size:17px; font-weight:600;
+    color:#0B0D0F; flex-shrink:0;
+  }
+  .isl-text { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+  .isl-name   { font-size:13px; font-weight:600; color:#F0F0F0; }
+  .isl-status { font-size:11px; color:#8A8A8A; }
+  .isl-pulse  {
+    width:9px; height:9px; border-radius:50%; background:#1DB954; flex-shrink:0;
+    animation:pulseGreen 1.3s ease-in-out infinite;
+  }
+  @keyframes pulseGreen { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.6)} }
+
+  /* ============================================================
+     MAIN LAYOUT — hidden until splash done
+  ============================================================ */
+  #app {
+    width:100%; height:100%;
+    display:flex; flex-direction:column;
+    padding:22px 30px; gap:18px;
+    opacity:0; transition:opacity 0.6s ease;
+  }
+  #app.ready { opacity:1; }
+
+  /* Top strip */
+  .strip {
+    position:relative;
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom:16px; border-bottom:1px solid var(--border);
+    overflow:hidden;
+  }
+  .sweep {
+    position:absolute; top:0; left:-40%; width:40%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,138,61,0.05),transparent);
+    animation:sweep 9s linear infinite; pointer-events:none;
+  }
+  @keyframes sweep { 0%{left:-40%} 100%{left:100%} }
+
+  .clock-block { display:flex; align-items:baseline; gap:12px; }
+  .clock {
+    font-family:'Oswald',sans-serif; font-weight:600;
+    font-size:60px; letter-spacing:1px; line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .clock .colon { color:var(--amber); }
+  .date { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px; }
+
+  .weather-block { display:flex; align-items:center; gap:14px; }
+  .weather-temp { font-family:'Oswald',sans-serif; font-weight:500; font-size:30px; color:var(--steel); line-height:1; }
+  .weather-meta { display:flex; flex-direction:column; gap:2px; }
+  .weather-cond { font-size:13px; color:var(--text); font-weight:500; }
+  .weather-loc  { font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
+  .weather-icon { width:26px; height:26px; color:var(--steel); }
+
+  /* ============================================================
+     TILES
+  ============================================================ */
+  .tiles {
+    flex:1; display:grid;
+    grid-template-columns:1.3fr 1fr 1fr;
+    gap:16px; min-height:0;
+  }
+
+  .tile {
+    position:relative;
+    border-radius:14px; overflow:hidden;
+    cursor:pointer; border:1px solid var(--border);
+    display:flex; flex-direction:column; justify-content:flex-end;
+    transition:transform 0.14s ease, filter 0.14s ease;
+  }
+  .tile:active { transform:scale(0.97); filter:brightness(0.85); }
+
+  /* Full-bleed background art for each tile */
+  .tile-bg {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+
+  /* Maps tile — road/navigation scene */
+  .tile-nav .tile-bg { background:linear-gradient(160deg, #0d1829 0%, #1a2f4a 60%, #0e1f35 100%); }
+  .tile-nav { border-top:2px solid var(--amber); }
+
+  /* YouTube tile — cinema/screen feel */
+  .tile-tube .tile-bg { background:linear-gradient(160deg, #1a0505 0%, #2d0a0a 50%, #1a0000 100%); }
+  .tile-tube { border-top:2px solid #FF0000; }
+
+  /* Spotify tile — concert/music vibe */
+  .tile-spot .tile-bg { background:linear-gradient(160deg, #051a0d 0%, #0a2d15 50%, #04180b 100%); }
+  .tile-spot { border-top:2px solid #1DB954; }
+
+  /* Label area at bottom with gradient overlay */
+  .tile-foot {
+    position:relative; z-index:2;
+    padding:16px 18px 18px;
+    background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+  }
+  .tile-label {
+    font-family:'Oswald',sans-serif;
+    font-size:22px; font-weight:500; letter-spacing:0.5px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .tile-label svg { width:20px; height:20px; flex-shrink:0; }
+  .tile-sub { font-size:11px; color:rgba(255,255,255,0.5); margin-top:3px; text-transform:uppercase; letter-spacing:1.2px; }
+  .tile-nav  .tile-label { color:var(--amber); }
+  .tile-tube .tile-label { color:#FF4444; }
+  .tile-spot .tile-label { color:#1DB954; }
+
+  /* Entrance stagger */
+  .enter {
+    opacity:0; transform:translateY(20px);
+    animation:enterUp 0.85s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes enterUp {
+    0%  { opacity:0; transform:translateY(20px); }
+    60% { opacity:1; }
+    100%{ opacity:1; transform:translateY(0); }
+  }
+  .clock-block   { animation-delay:0.08s; }
+  .weather-block { animation-delay:0.2s;  }
+  .tile-nav      { animation-delay:0.35s; }
+  .tile-tube     { animation-delay:0.5s;  }
+  .tile-spot     { animation-delay:0.65s; }
+
+  svg { display:block; }
+</style>
+</head>
+<body>
+
+<!-- ===== SPLASH (outside #app so it's always on top cleanly) ===== -->
+<div id="splash">
+  <div class="s-scan"></div>
+  <div class="s-corners"><div class="s-br"></div><div class="s-bl"></div></div>
+  <div class="s-center">
+    <div class="s-rings">
+      <div class="s-ring1"></div>
+      <div class="s-ring2"></div>
+      <div class="s-ring3"></div>
+      <div class="s-dot"></div>
+    </div>
+    <div class="s-word">DRIVE<span class="acc">.</span></div>
+    <div class="s-tag">All Version CarPlay</div>
+  </div>
+  <div class="s-bar-track"><div class="s-bar-fill"></div></div>
+  <div class="s-status">Initialising your drive&hellip;</div>
+</div>
+
+<!-- ===== ROTATE PROMPT ===== -->
+<div id="rotateScreen">
+  <svg class="rot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <rect x="6" y="3" width="12" height="18" rx="2"/>
+    <path d="M4 17l-2 2 2 2M20 7l2-2-2-2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="rot-text">Rotate to landscape</div>
+</div>
+
+<!-- ===== DYNAMIC ISLAND ===== -->
+<div id="island">
+  <div class="isl-content">
+    <div class="isl-avatar" id="islandAvatar">?</div>
+    <div class="isl-text">
+      <div class="isl-name" id="islandName">Caller</div>
+      <div class="isl-status">Incoming call &middot; mobile</div>
+    </div>
+    <div class="isl-pulse"></div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="app">
+
+  <div class="strip">
+    <div class="sweep"></div>
+    <div class="clock-block enter">
+      <div class="clock" id="clock">--<span class="colon">:</span>--</div>
+      <div class="date" id="date">---, --- --</div>
+    </div>
+    <div class="weather-block enter">
+      <svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.7A4 4 0 0 0 5.5 16" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="weather-meta">
+        <div class="weather-cond" id="weather-cond">Partly cloudy</div>
+        <div class="weather-loc">Negombo</div>
+      </div>
+      <div class="weather-temp" id="weather-temp">29°</div>
+    </div>
+  </div>
+
+  <div class="tiles">
+
+    <!-- MAPS -->
+    <div class="tile tile-nav enter" onclick="launch('maps')">
+      <div class="tile-bg">
+        <!-- Road / navigation SVG scene -->
+        <svg width="100%" height="100%" viewBox="0 0 340 200" preserveAspectRatio="xMidYMid slice">
+          <!-- Sky gradient -->
+          <rect width="340" height="200" fill="url(#mapSky)"/>
+          <!-- Horizon glow -->
+          <ellipse cx="170" cy="110" rx="180" ry="40" fill="rgba(255,138,61,0.08)"/>
+          <!-- Road vanishing perspective -->
+          <polygon points="110,200 230,200 195,95 145,95" fill="url(#roadGrad)"/>
+          <!-- Road center dashes -->
+          <rect x="167" y="98"  width="6" height="16" rx="3" fill="rgba(255,200,80,0.6)"/>
+          <rect x="164" y="122" width="12" height="20" rx="3" fill="rgba(255,200,80,0.5)"/>
+          <rect x="160" y="150" width="20" height="26" rx="3" fill="rgba(255,200,80,0.4)"/>
+          <rect x="155" y="182" width="30" height="24" rx="3" fill="rgba(255,200,80,0.3)"/>
+          <!-- Road edge lines -->
+          <line x1="145" y1="95" x2="110" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <line x1="195" y1="95" x2="230" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <!-- Distant city silhouette -->
+          <rect x="60"  y="75" width="8"  height="30" fill="rgba(255,255,255,0.04)"/>
+          <rect x="72"  y="65" width="12" height="40" fill="rgba(255,255,255,0.05)"/>
+          <rect x="88"  y="70" width="7"  height="35" fill="rgba(255,255,255,0.03)"/>
+          <rect x="240" y="68" width="10" height="37" fill="rgba(255,255,255,0.04)"/>
+          <rect x="255" y="60" width="14" height="45" fill="rgba(255,255,255,0.05)"/>
+          <rect x="274" y="72" width="8"  height="33" fill="rgba(255,255,255,0.03)"/>
+          <!-- Stars -->
+          <circle cx="40"  cy="20" r="1" fill="rgba(255,255,255,0.6)"/>
+          <circle cx="90"  cy="35" r="0.8" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="150" cy="15" r="1.2" fill="rgba(255,255,255,0.5)"/>
+          <circle cx="210" cy="28" r="0.8" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="280" cy="18" r="1"   fill="rgba(255,255,255,0.6)"/>
+          <circle cx="310" cy="40" r="0.7" fill="rgba(255,255,255,0.3)"/>
+          <!-- Maps pin -->
+          <path d="M170 58 C163 58 157 64 157 71 C157 80 170 92 170 92 C170 92 183 80 183 71 C183 64 177 58 170 58Z" fill="var(--amber)" opacity="0.9"/>
+          <circle cx="170" cy="71" r="5" fill="white"/>
+          <defs>
+            <linearGradient id="mapSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="#0a1628"/>
+              <stop offset="60%" stop-color="#1a2f4a"/>
+              <stop offset="100%" stop-color="#0e1f35"/>
+            </linearGradient>
+            <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="#2a3a50"/>
+              <stop offset="100%" stop-color="#1a2535"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="tile-foot">
+        <div class="tile-label">
+          <!-- Maps pin icon inline -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          Navigate
+        </div>
+        <div class="tile-sub">Google Maps</div>
+      </div>
+    </div>
+
+    <!-- YOUTUBE -->
+    <div class="tile tile-tube enter" onclick="launch('youtube')">
+      <div class="tile-bg">
+        <svg width="100%" height="100%" viewBox="0 0 260 200" preserveAspectRatio="xMidYMid slice">
+          <!-- Dark cinema bg -->
+          <rect width="260" height="200" fill="url(#ytBg)"/>
+          <!-- Film strip left -->
+          <rect x="0" y="0" width="22" height="200" fill="rgba(0,0,0,0.5)"/>
+          <rect x="3" y="10"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="3" y="38"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="3" y="66"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="3" y="94"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="3" y="122" width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="3" y="150" width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="3" y="178" width="16" height="18" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <!-- Film strip right -->
+          <rect x="238" y="0" width="22" height="200" fill="rgba(0,0,0,0.5)"/>
+          <rect x="241" y="10"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="241" y="38"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="241" y="66"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="241" y="94"  width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="241" y="122" width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <rect x="241" y="150" width="16" height="22" rx="2" fill="rgba(255,255,255,0.05)"/>
+          <!-- Screen glow -->
+          <ellipse cx="130" cy="85" rx="90" ry="55" fill="rgba(255,0,0,0.07)"/>
+          <!-- YouTube play button -->
+          <rect x="80" y="45" width="100" height="70" rx="16" fill="rgba(255,0,0,0.85)"/>
+          <path d="M114 62 L114 98 L154 80 Z" fill="white"/>
+          <!-- Scan lines overlay -->
+          <rect width="260" height="200" fill="url(#scanlines)" opacity="0.25"/>
+          <defs>
+            <linearGradient id="ytBg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#1a0505"/>
+              <stop offset="100%" stop-color="#0d0000"/>
+            </linearGradient>
+            <pattern id="scanlines" width="260" height="4" patternUnits="userSpaceOnUse">
+              <rect width="260" height="1" y="0" fill="rgba(0,0,0,0.3)"/>
+            </pattern>
+          </defs>
+        </svg>
+      </div>
+      <div class="tile-foot">
+        <div class="tile-label">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.26 8.26 0 0 0 4.84 1.56V6.79a4.85 4.85 0 0 1-1.07-.1z"/></svg>
+          Watch
+        </div>
+        <div class="tile-sub">YouTube</div>
+      </div>
+    </div>
+
+    <!-- SPOTIFY -->
+    <div class="tile tile-spot enter" onclick="launch('spotify')">
+      <div class="tile-bg">
+        <svg width="100%" height="100%" viewBox="0 0 260 200" preserveAspectRatio="xMidYMid slice">
+          <!-- Dark green bg -->
+          <rect width="260" height="200" fill="url(#spotBg)"/>
+          <!-- Sound wave rings emanating from center -->
+          <circle cx="130" cy="85" r="20" fill="none" stroke="rgba(29,185,84,0.5)" stroke-width="2"/>
+          <circle cx="130" cy="85" r="38" fill="none" stroke="rgba(29,185,84,0.35)" stroke-width="1.5"/>
+          <circle cx="130" cy="85" r="58" fill="none" stroke="rgba(29,185,84,0.22)" stroke-width="1"/>
+          <circle cx="130" cy="85" r="80" fill="none" stroke="rgba(29,185,84,0.12)" stroke-width="1"/>
+          <circle cx="130" cy="85" r="105" fill="none" stroke="rgba(29,185,84,0.07)" stroke-width="1"/>
+          <!-- Center Spotify logo -->
+          <circle cx="130" cy="85" r="28" fill="#1DB954"/>
+          <path d="M118 78 Q130 73 142 78" stroke="white" stroke-width="3"   stroke-linecap="round" fill="none"/>
+          <path d="M119 85 Q130 80 141 85" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M121 92 Q130 88 139 92" stroke="white" stroke-width="2"   stroke-linecap="round" fill="none"/>
+          <!-- Floating music notes -->
+          <text x="52"  y="50"  font-size="18" fill="rgba(29,185,84,0.3)" font-family="serif">♪</text>
+          <text x="192" y="44"  font-size="14" fill="rgba(29,185,84,0.25)" font-family="serif">♫</text>
+          <text x="30"  y="130" font-size="12" fill="rgba(29,185,84,0.2)"  font-family="serif">♩</text>
+          <text x="208" y="125" font-size="16" fill="rgba(29,185,84,0.25)" font-family="serif">♪</text>
+          <text x="80"  y="28"  font-size="10" fill="rgba(29,185,84,0.2)"  font-family="serif">♫</text>
+          <defs>
+            <linearGradient id="spotBg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#051a0d"/>
+              <stop offset="100%" stop-color="#030f07"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="tile-foot">
+        <div class="tile-label">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          Listen
+        </div>
+        <div class="tile-sub">Spotify</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /#app -->
+
+<script>
+  // ===== SPLASH — fires after DOM ready, independent of body opacity =====
+  document.addEventListener('DOMContentLoaded', () => {
+    const splash = document.getElementById('splash');
+    const app    = document.getElementById('app');
+
+    // Show app behind splash immediately (splash covers it)
+    app.classList.add('ready');
+
+    // Let the full animation play (~3.5s) then fade splash out
+    setTimeout(() => {
+      splash.classList.add('out');
+      setTimeout(() => splash.remove(), 1300);
+    }, 3500);
+  });
+
+  // ===== ORIENTATION =====
+  function tryLock() {
+    if (screen.orientation && screen.orientation.lock)
+      screen.orientation.lock('landscape').catch(()=>{});
+  }
+  function checkOrient() {
+    document.getElementById('rotateScreen')
+      .classList.toggle('show', window.innerHeight > window.innerWidth);
+  }
+  document.addEventListener('click', tryLock, { once:true });
+  tryLock();
+  window.addEventListener('resize', checkOrient);
+  window.addEventListener('orientationchange', checkOrient);
+  checkOrient();
+
+  // ===== CLOCK =====
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock').innerHTML =
+      n.getHours().toString().padStart(2,'0') +
+      '<span class="colon">:</span>' +
+      n.getMinutes().toString().padStart(2,'0');
+    const D = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('date').textContent =
+      D[n.getDay()] + ', ' + M[n.getMonth()] + ' ' + n.getDate();
+  }
+  tick();
+  setInterval(tick, 10000);
+
+  // ===== LAUNCH =====
+  function launch(app) {
+    const urls = {
+      maps:    'https://maps.google.com',
+      youtube: 'https://m.youtube.com',
+      spotify: 'https://open.spotify.com'
+    };
+    if (urls[app]) window.open(urls[app], '_blank');
+  }
+
+  // ===== DYNAMIC ISLAND =====
+  function simulateIncomingCall(name) {
+    const isl = document.getElementById('island');
+    document.getElementById('islandName').textContent   = name;
+    document.getElementById('islandAvatar').textContent = name[0].toUpperCase();
+    isl.classList.add('awake');
+    setTimeout(() => isl.classList.add('expanded'), 320);
+    setTimeout(() => {
+      isl.classList.remove('expanded');
+      setTimeout(() => isl.classList.remove('awake'), 650);
+    }, 7000);
+  }
+
+  // Tap clock to demo call
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.clock-block').addEventListener('click', e => {
+      e.stopPropagation();
+      simulateIncomingCall('Mom');
+    });
+  });
+</script>
+
+</body>
+</html>
